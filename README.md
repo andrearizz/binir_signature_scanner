@@ -13,14 +13,15 @@ Il programma riceve in input un file binario ed un file di regole. Il file di re
 ```
 def rule_1:
     matches:
-        $x = "PUT(rdx) = 0x0000000000000000"
+        $x = "Sub64(t27,0x0000000000000008)"
         $y = "PUT(rax) = 0x0000000000000002"
         $z = "PUT(rip) = 0x000000000060111c"
     condition:
         $z
+        $x
 ```    
         
-In questa prima versione è solamente possibile inserire su ogni riga la stringa da matchare tramite assegnamento ad una variabile. Analogamente ogni stringa devrebbe essere nella forma `$variabile = "stringa"`.
+In questa prima versione è solamente possibile inserire su ogni riga la stringa da matchare tramite assegnamento ad una variabile. Analogamente ogni stringa dovrebbe essere nella forma `$variabile = "stringa"`.
 
 Lark è stato utilizzato per effettuare il parsing delle regole. Lark può essere utilizzato come libreria e si occupa di tutta la parte di generazione dell'albero di parsing (o abstract sytax tree) ma è necessario scrivere una grammatica. La grammatica (che andrà estesa) per questo semplice linguaggio è visualizzabile nel file `grammar.lark`.
 
@@ -30,7 +31,11 @@ L'esecuzione di questo comando:
 
 `python3 main.py server rule1.txt`
 
+
 darà in output:
 
-`Found the string PUT(rip) = 0x000000000060111c`
+ ```
+ Found the string PUT(rip) = 0x000000000060111c
+ Found the string Sub64(t27,0x0000000000000008)
+ ```
 
