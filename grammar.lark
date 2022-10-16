@@ -1,0 +1,14 @@
+?start: _NL* rule
+
+rule: "def" NAME ":" _NL* [_INDENT stmt _DEDENT]
+stmt: "matches" ":" _NL* [_INDENT matches+ _DEDENT] "condition" ":" _NL [_INDENT condition+ _DEDENT]
+
+matches: "$"NAME "=" STRING _NL* [_INDENT matches+ _DEDENT]
+condition: "$"NAME _NL* [_INDENT condition+ _DEDENT]
+
+%import common.ESCAPED_STRING -> STRING
+%import common.CNAME -> NAME
+%import common.WS_INLINE
+%declare _INDENT _DEDENT
+%ignore WS_INLINE
+_NL: /(\r?\n[\t ]*)+/

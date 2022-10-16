@@ -1,0 +1,7 @@
+def rule_1:
+    matches:
+        $x = "PUT(rdx) = 0x0000000000000000"
+        $y = "PUT(rax) = 0x0000000000000002"
+        $z = "PUT(rip) = 0x000000000060111c"
+    condition:
+        $z
