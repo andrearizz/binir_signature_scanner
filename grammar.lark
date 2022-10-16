@@ -1,7 +1,7 @@
 ?start: _NL* rule
 
 rule: "def" NAME ":" _NL* [_INDENT stmt _DEDENT]
-stmt: "matches" ":" _NL* [_INDENT matches+ _DEDENT] "condition" ":" _NL [_INDENT condition+ _DEDENT]
+stmt: "matches" ":" _NL* [_INDENT matches+ _DEDENT] "conditions" ":" _NL [_INDENT condition+ _DEDENT]
 
 matches: "$"NAME "=" STRING _NL* [_INDENT matches+ _DEDENT]
 condition: "$"NAME _NL* [_INDENT condition+ _DEDENT]

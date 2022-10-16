@@ -103,7 +103,7 @@ class Interpreter:
                 string = d[condition]
                 if string in vex:
                     print("Found the string {}".format(string))
-                    break
+
 
 
 def main():
