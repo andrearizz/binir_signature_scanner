@@ -104,7 +104,7 @@ class Lifter:
 
 
 def main():
-    lifter = Lifter("server", start_addr=0x401309, end_addr=0x401567)
+    lifter = Lifter("server", function='main')
     print(lifter.lift())
 
 
