@@ -48,7 +48,7 @@ The condition $y and ( $x or $z ) from rule: rule_1 is satisfied
 The condition $x = "PUT(rip) = 0x000000000060111c" for the rule rule_2 is not satisfied
 ```
 
-È stato migliorato l'output in maniera da visualizzare quali stringhe matchino e quali no e l'indirizzo dell'istruzione assembly a cui appartengono. Ad esempio, analizzando staticamente il binario con un qualsiasi disassembler, notiamo che l'istruzione assembly all'indirizzo 0x40151b è `0x00001541      mov   esi, 2` che appunto, in VEX viene tradotto con la sola istruzione `PUT(rsi) = 0x0000000000000002`. Si ricorda che se il binario è compilato per essere "position indipendent" questo verrà interpretato in angr come se partisse dall'indirizzo 0x400000.
+È stato migliorato l'output in maniera da visualizzare quali stringhe matchino e quali no e l'indirizzo dell'istruzione assembly a cui appartengono. Ad esempio, analizzando staticamente il binario con un qualsiasi disassembler, notiamo che l'istruzione assembly all'indirizzo 0x40151b è `mov   esi, 2` che appunto, in VEX viene tradotto con la sola istruzione `PUT(rsi) = 0x0000000000000002`. Si ricorda che se il binario è compilato per essere "position indipendent" questo verrà interpretato in angr come se partisse dall'indirizzo 0x400000.
 
 # Miglioramenti
 
