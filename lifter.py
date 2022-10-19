@@ -5,7 +5,7 @@ import uuid
 
 
 class Lifter:
-    def __init__(self, binary):
+    def __init__(self, binary, function='', start_addr=0, end_addr=0):
         self.binary = os.path.abspath(binary)
 
         # Carica il binario
@@ -14,6 +14,9 @@ class Lifter:
         # Prendi il control flow graph
         self.cfg = self.proj.analyses.CFGFast()
 
+        self.function = function
+        self.start_addr = start_addr
+        self.end_addr = end_addr
         '''
         Oggetto accessibile come dizionario contenente l'indirizzo e il nome delle funzioni del binario. 
         Iterabile attraverso l'indirizzo delle funzioni (vedi __all_bb())
@@ -26,7 +29,44 @@ class Lifter:
         for addr in self.functions_addr:
             basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
 
-        # Flat basic_blocks
+        # Flat basic blocks
+        basic_blocks = [item for sublist in basic_blocks for item in sublist]
+        basic_blocks.sort()
+        # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
+        return basic_blocks
+
+    def __function_bb(self):
+        basic_blocks = []
+        for addr in self.functions_addr:
+            if self.functions_addr[addr].name == self.function:
+                basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
+        # Flat basic blocks
+        basic_blocks = [item for sublist in basic_blocks for item in sublist]
+        basic_blocks.sort()
+        # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
+        return basic_blocks
+
+    def __range_bb(self):
+        basic_blocks = []
+        start = int(self.start_addr)
+        end = int(self.end_addr)
+        for addr in self.functions_addr:
+            if int(start <= addr <= end):
+                basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
+        # Flat basic blocks
+        basic_blocks = [item for sublist in basic_blocks for item in sublist]
+        basic_blocks.sort()
+        # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
+        return basic_blocks
+
+    def __addr_bb(self):
+        basic_blocks = []
+        start = int(self.start_addr)
+        print(start)
+        for addr in self.functions_addr:
+            if int(start <= addr):
+                basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
+        # Flat basic blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
         basic_blocks.sort()
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
@@ -45,8 +85,16 @@ class Lifter:
         uid = uuid.uuid1()
         filename = "/tmp/ir-{}".format(uid)
 
-        # Ottieni tutti i basic block
-        irsbs = self.__irsb(self.__all_bb())
+        if self.function:
+            irsbs = self.__irsb(self.__function_bb())
+        elif self.start_addr and self.end_addr:
+            irsbs = self.__irsb(self.__range_bb())
+        elif self.start_addr and not self.end_addr:
+            irsbs = self.__irsb(self.__addr_bb())
+        else:
+            # Ottieni tutti i basic block
+            irsbs = self.__irsb(self.__all_bb())
+
         for ir in irsbs:
             with open(filename, "a") as sys.stdout:  # Redirigi lo standard output verso il file temporaneo
                 ir.pp()
@@ -56,7 +104,7 @@ class Lifter:
 
 
 def main():
-    lifter = Lifter("server")
+    lifter = Lifter("server", start_addr=0x401309, end_addr=0x401567)
     print(lifter.lift())
 
 

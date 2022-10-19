@@ -48,6 +48,7 @@ class MyTransformer(Transformer):
 
     def terminal(self, items):
         return items
+
     def condition(self, items):
         return items
 
@@ -62,8 +63,7 @@ class Interpreter:
     def __init__(self, rules_file, ir_file):
         # Prendi il nome del file delle regole, del binario in VEX e della grammatica
         self.rules_file = os.path.abspath(rules_file)
-        with open(ir_file, 'r') as ir:
-            self.vex = ir.read()
+        self.ir_file = ir_file
         self.grammar_path = Path(".").parent
         # Elementi utili per la valutazione della condizione
         self.tokens = ['and', 'or', '(', ')']
@@ -73,6 +73,7 @@ class Interpreter:
     def __check_conditions(self, transformed_tree):
         matches = []
         conditions = []
+        rule_name = transformed_tree[0]
         # print(transformed_tree)
         for el in transformed_tree[1]:
             # print(el)
@@ -84,7 +85,7 @@ class Interpreter:
         # print('c', conditions)
 
         d = self.__flat_dictionary(matches)
-        self.__search_conditions(conditions, d)
+        self.__search_conditions(conditions, d, rule_name)
 
     def __priority(self, op1, op2):
         if (op1 == '(' or op1 == ')') or (op2 == '(' or op2 == ')'):
@@ -134,7 +135,22 @@ class Interpreter:
                 if element == 'or':
                     stack.append(val1 or val2)
             else:
-                stack.append(d[element] in self.vex)
+                imarks = []
+                found = 0
+                with open(self.ir_file, 'r') as ir:
+                    for line in ir:
+                        mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
+                        if mark:
+                            imarks.append(mark)
+                        if d[element] in line:
+                            address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
+                            print('Condition ${} = "{}" is satisfied for the istruction'
+                                  ' at address: {}'.format(element, d[element], address))
+                            found = 1
+                            stack.append(True)
+                    if not found:
+                        stack.append(False)
+                        print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))
         return stack[0]
 
     def infix(self, conditions):
@@ -146,27 +162,41 @@ class Interpreter:
             result.append(conditions)
         return result
 
-    def __search_conditions(self, conditions, d):
+    def __search_conditions(self, conditions, d, rule_name):
         # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice
         # VEX
         condition = conditions[0]
         # print(conditions)
         if len(conditions) == 1:
             # print(condition)
+            found = 0
+            imarks = []
             if condition in d:
                 string = d[condition]
-                if string in self.vex:
-                    print("Found the string {}".format(string))
+                with open(self.ir_file, 'r') as ir:
+                    for line in ir:
+                        mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
+                        if mark:
+                            imarks.append(mark)
+                        if string in line:
+                            address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
+                            print("The condition ${} for the rule {} is satisfied for the"
+                                  " istruction at address {}".format(condition, rule_name, address))
+                            found = 1
+                            break
+                    if not found:
+                        print('The condition ${} = "{}" for the rule {} is not satisfied'.format(condition, string,
+                                                                                                 rule_name))
+
         else:
             # infix = [y for x in conditions for y in (x if isinstance(x, list) else [x])]
             infix = self.infix(conditions)
-            # print(infix)
+            cond = ''.join("$" + val + " " if val not in self.tokens else val + " " for val in infix).strip()
             postfix = self.__postfix(infix)
-            print(postfix)
             if self.evaluate(postfix, d):
-                print("The condition is satisfied")
+                print("The condition {} from rule: {} is satisfied".format(cond.strip(), rule_name))
             else:
-                print("Condition is not satisfied")
+                print("The condition {} from rule: {} is not satisfied".format(cond.strip(), rule_name))
 
         '''
         for condition in conditions:
@@ -195,7 +225,7 @@ class Interpreter:
             MyTransformer
             '''
             transformed_tree = parser.parse(data)
-            print(transformed_tree)
+            # print(transformed_tree)
 
         # print(transformed_tree.pretty())
         # print(transformed_tree[0])
