@@ -35,37 +35,19 @@ class MyTransformer(Transformer):
         return json.loads('{{"{}": {}}}'.format(variable, string))
 
     def or_cond(self, items):
-        '''
-        self.id_or = self.id_or + 1
-        if self.cond:
-            for key in items[1]:
-                self.cond[f"or_{self.id_or}"] = items[0] + '-' + key
-                return self.cond
-        else:
-            self.cond[f"or_{self.id_or}"] = items
-            return self.cond
-        '''
         return items
 
     def and_cond(self, items):
-        '''
-        self.id_and = self.id_and + 1
-        if self.cond:
-            for key in items[1]:
-                self.cond[f"and{self.id_and}"] = items[0] + '-' + key
-                return self.cond
-        else:
-            self.cond[f"and_{self.id_and}"] = items
-            return self.cond
-        return self.cond
-        '''
-
         return items
 
     def stmt(self, items):
-        # print('1', items)
         return items
 
+    def parenthesis(self, items):
+        return items
+
+    def terminal(self, items):
+        return items
     def condition(self, items):
         return items
 
@@ -83,7 +65,8 @@ class Interpreter:
         with open(ir_file, 'r') as ir:
             self.vex = ir.read()
         self.grammar_path = Path(".").parent
-        self.tokens = ['and', 'or']
+        # Elementi utili per la valutazione della condizione
+        self.tokens = ['and', 'or', '(', ')']
         self.high = ['and']
         self.low = ['or']
 
@@ -104,6 +87,8 @@ class Interpreter:
         self.__search_conditions(conditions, d)
 
     def __priority(self, op1, op2):
+        if (op1 == '(' or op1 == ')') or (op2 == '(' or op2 == ')'):
+            return -1
         if op1 in self.high and op2 in self.high:
             return 0
         if op1 in self.low and op2 in self.low:
@@ -117,40 +102,50 @@ class Interpreter:
         op_stack = []
         postfix = []
         for el in infix:
-            # print(el, end=" ")
             if el in self.tokens:
-                if len(op_stack) == 0:
+                if not op_stack:
                     op_stack.append(el)
                     continue
-                operator = op_stack[-1]
-                if self.__priority(el, operator) == 1:
-                    op_stack.append(el)
-                elif self.__priority(el, operator) < 1:
+                if self.__priority(op_stack[-1], el) >= 0:
                     postfix.append(op_stack.pop())
+                    op_stack.append(el)
+                elif self.__priority(op_stack[-1], el) < 0:
+                    if el == ')':
+                        postfix.append(op_stack.pop())
+                    else:
+                        op_stack.append(el)
             else:
                 postfix.append(el)
         while op_stack:
-            postfix.append(op_stack.pop())
+            if op_stack[-1] == '(':
+                op_stack.pop()
+            else:
+                postfix.append(op_stack.pop())
         return postfix
 
     def evaluate(self, postfix, d):
         stack = []
-        for el in postfix:
-            if el in self.tokens:
+        for element in postfix:
+            if element in self.tokens:
                 val2 = stack.pop()
                 val1 = stack.pop()
-                string1 = d[val1]
-                string2 = d[val2]
-                if el == "and":
-                    if string1 in self.vex and string2 in self.vex:
-                        print("String ${} and string ${} are in the VEX".format(val1, val2))
-                        stack.append(True)
-                elif el == "or":
-                    if string1 in self.vex or string2 in self.vex:
-                        print("String ${} or string ${} are in the VEX".format(val1, val2))
-                        stack.append(True)
+                if element == 'and':
+                    stack.append(val1 and val2)
+                if element == 'or':
+                    stack.append(val1 or val2)
             else:
-                stack.append(el)
+                stack.append(d[element] in self.vex)
+        return stack[0]
+
+    def infix(self, conditions):
+        result = []
+        if isinstance(conditions, (list, tuple)):
+            for x in conditions:
+                result.extend(self.infix(x))
+        else:
+            result.append(conditions)
+        return result
+
     def __search_conditions(self, conditions, d):
         # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice
         # VEX
@@ -163,11 +158,15 @@ class Interpreter:
                 if string in self.vex:
                     print("Found the string {}".format(string))
         else:
-            infix = [y for x in conditions for y in (x if isinstance(x, list) else [x])]
+            # infix = [y for x in conditions for y in (x if isinstance(x, list) else [x])]
+            infix = self.infix(conditions)
             # print(infix)
             postfix = self.__postfix(infix)
-            print(postfix, d)
-            self.evaluate(postfix, d)
+            print(postfix)
+            if self.evaluate(postfix, d):
+                print("The condition is satisfied")
+            else:
+                print("Condition is not satisfied")
 
         '''
         for condition in conditions:
@@ -196,7 +195,7 @@ class Interpreter:
             MyTransformer
             '''
             transformed_tree = parser.parse(data)
-            # print(transformed_tree)
+            print(transformed_tree)
 
         # print(transformed_tree.pretty())
         # print(transformed_tree[0])

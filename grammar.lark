@@ -8,8 +8,11 @@ matches: "$"NAME "=" STRING _NL+ [_INDENT matches* _DEDENT]
 condition: or_cond
 ?or_cond: and_cond (OR and_cond)*
 ?and_cond: atom (AND atom)*
-?atom: "$"NAME _NL*
+?atom: OPAR condition CPAR _NL* -> parenthesis
+    | "$"NAME _NL* -> terminal
 
+OPAR: "("
+CPAR: ")"
 OR: "or"
 AND: "and"
 %import common.ESCAPED_STRING -> STRING
