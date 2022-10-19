@@ -3,6 +3,11 @@ def rule_1:
         $x = "Sub64(t27,0x0000000000000008)"
         $y = "PUT(rax) = 0x0000000000000002"
         $z = "PUT(rip) = 0x000000000060111c"
-    conditions:
-        $z
+    condition:
+        $y or $x and $z
+
+def rule_2:
+    matches:
+        $x = "PUT(rip) = 0x000000000060111c"
+    condition:
         $x
