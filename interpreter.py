@@ -142,6 +142,20 @@ class Interpreter:
                         mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
                         if mark:
                             imarks.append(mark)
+                        if "??" in d[element]:
+                            wildcard = 1
+                            instruction = re.split("\\?\\?", d[element])
+                            for ins in instruction:
+                                if ins not in line:
+                                    wildcard = 0
+                                    break
+                            if wildcard:
+                                address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
+                                print('Condition ${} = "{}" is satisfied for the istruction'
+                                      ' at address: {} with instruction "{}"'.format(element, d[element], address,
+                                                                                   line.strip().split("| ")[1]))
+                                found = 1
+                                stack.append(True)
                         if d[element] in line:
                             address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
                             print('Condition ${} = "{}" is satisfied for the istruction'

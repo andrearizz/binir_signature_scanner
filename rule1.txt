@@ -1,8 +1,8 @@
 def rule_1:
     matches:
-        $x = "PUT(rsi) = 0x0000000000000002"
+        $x = "PUT(rax) = 0x000000000040130d"
         $y = "PUT(rip) = 0x000000000040151d"
-        $z = "LDbe:I64(t3)"
+        $z = "LD??:I64(??)"
     condition:
         $y and ($x or $z)
 
