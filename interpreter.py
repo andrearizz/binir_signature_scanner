@@ -70,22 +70,18 @@ class Interpreter:
         self.high = ['and']
         self.low = ['or']
 
+    # Divido tra stringhe e condizione
     def __check_conditions(self, transformed_tree):
         matches = []
         conditions = []
         rule_name = transformed_tree[0]
-        # print(transformed_tree)
         for el in transformed_tree[1]:
-            # print(el)
             if isinstance(el, dict):
-                matches.append(el)
+                matches.append(el)  # Stringhe
             elif isinstance(el, list):
-                conditions = el[0]
-        # print('m', matches)
-        # print('c', conditions)
-
-        d = self.__flat_dictionary(matches)
-        self.__search_conditions(conditions, d, rule_name)
+                conditions = el[0]  # Condizioni
+        d = self.__flat_dictionary(matches)  # Appiattisco il risultato in un'unica lista di stringhe da matchare
+        self.__search_conditions(conditions, d, rule_name)  # Cerco le condizioni nel file
 
     def __priority(self, op1, op2):
         if (op1 == '(' or op1 == ')') or (op2 == '(' or op2 == ')'):
@@ -99,6 +95,7 @@ class Interpreter:
         if op1 in self.low and op2 in self.high:
             return -1
 
+    # Da lista che rappresenta la condizione infissa a postfissa
     def __postfix(self, infix):
         op_stack = []
         postfix = []
@@ -124,11 +121,14 @@ class Interpreter:
                 postfix.append(op_stack.pop())
         return postfix
 
+    # Verifico che la singola stringa sia presente nel VEX
     def __find(self, d, element):
-        imarks = []
+        imarks = []  # Lista degli indirizzi delle istruzioni da stampare
         found = False
         with open(self.ir_file, 'r') as ir:
             for line in ir:
+                # Normalizzo i valori esadecimali nel VEX e nelle stringe da verificare
+                # Es: 0x0000000000000034 diventa 0x34
                 hex_line = re.findall(r"0x[0-9a-f]+", line, re.I)
                 if hex_line:
                     number = hex(int(hex_line[0], 0))
@@ -136,9 +136,11 @@ class Interpreter:
                 hex_cond = re.findall(r"0x[0-9a-f]+", d[element], re.I)
                 if hex_cond:
                     d[element] = d[element].replace(hex_cond[0], hex(int(hex_cond[0], 0)))
+                # Ricerco l'indirizzo da appendere alla lista
                 mark = re.findall(r"^    00 | -+ IMark\(0x[0-9a-f]+, [0-9], [0-9]\) -+", line, re.I)
                 if mark:
                     imarks.append(mark)
+                # Verifico la presenza della stringa in presenza di wildcard
                 if "??" in d[element]:
                     wildcard = 1
                     instruction = re.split("\\?\\?", d[element])
@@ -153,62 +155,38 @@ class Interpreter:
                                                                              line.strip().split("| ")[1]))
                         found = True
                         return found
+                # Se non siamo in presenza di wildcard verifico normalelmente la presenza
                 if d[element] in line:
                     address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks.pop()), re.I))
                     print('Condition ${} = "{}" is satisfied for the istruction'
                           ' at address: {}'.format(element, d[element], address))
                     found = True
                     return found
+            # Se ho terminato il VEX e non ho trovato nessun match
             if not found:
                 print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))
                 found = False
                 return found
 
+    # Valutazione della condizione
     def evaluate(self, postfix, d):
         stack = []
+        # Scorro l'espressione e verifico se si tratta di un operatore o un operando
         for element in postfix:
-            if element in self.tokens:
+            if element in self.tokens:  # Operatore
                 val2 = stack.pop()
                 val1 = stack.pop()
                 if element == 'and':
                     stack.append(val1 and val2)
                 if element == 'or':
                     stack.append(val1 or val2)
-            else:
+            else:  # Operando
+                # Metto nello stack True o False, a seconda che la stringa sia presente o meno nel binario liftato
                 stack.append(self.__find(d, element))
-                '''imarks = []
-                found = 0
-                with open(self.ir_file, 'r') as ir:
-                    for line in ir:
-                        mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
-                        if mark:
-                            imarks.append(mark)
-                        if "??" in d[element]:
-                            wildcard = 1
-                            instruction = re.split("\\?\\?", d[element])
-                            for ins in instruction:
-                                if ins not in line:
-                                    wildcard = 0
-                                    break
-                            if wildcard:
-                                address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
-                                print('Condition ${} = "{}" is satisfied for the istruction'
-                                      ' at address: {} with instruction "{}"'.format(element, d[element], address,
-                                                                                   line.strip().split("| ")[1]))
-                                found = 1
-                                stack.append(True)
-                        if d[element] in line:
-                            address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
-                            print('Condition ${} = "{}" is satisfied for the istruction'
-                                  ' at address: {}'.format(element, d[element], address))
-                            found = 1
-                            stack.append(True)
-                    if not found:
-                        stack.append(False)
-                        print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))'''
-        return stack[0]
+        return stack[0]  # Il risultato finale della valutazione sta sempre nella posizione 0
 
-    def infix(self, conditions):
+    # Da lista di liste di elementi ad un'unica lista di elementi in rappresentazione infissa
+    def __infix(self, conditions):
         result = []
         if isinstance(conditions, (list, tuple)):
             for x in conditions:
@@ -217,51 +195,24 @@ class Interpreter:
             result.append(conditions)
         return result
 
+    # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice VEX
     def __search_conditions(self, conditions, d, rule_name):
-        # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice
-        # VEX
         condition = conditions[0]
-        # print(conditions)
+        # Se la condizione non è composta
         if len(conditions) == 1:
-            # print(condition)
-            # found = 0
-            # imarks = []
-            # if condition in d:
-                # string = d[condition]
             self.__find(d, condition)
-
-                # with open(self.ir_file, 'r') as ir:
-                #   for line in ir:
-                #      mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
-                #     if mark:
-                #        imarks.append(mark)
-                #   if string in line:
-                #      address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
-                #     print("The condition ${} for the rule {} is satisfied for the"
-                #          " istruction at address {}".format(condition, rule_name, address))
-                #   found = 1
-                #  break
-                # if not found:
-                #    print('The condition ${} = "{}" for the rule {} is not satisfied'.format(condition, string,
-                #                                                                            rule_name))
-
+        # Se la condizione è composta
         else:
-            # infix = [y for x in conditions for y in (x if isinstance(x, list) else [x])]
-            infix = self.infix(conditions)
+            # Utilizzo la reverse polish notation per la valutazione della condizione
+            infix = self.__infix(conditions)
+            # Da lista a stringa della condizione infissa
             cond = ''.join("$" + val + " " if val not in self.tokens else val + " " for val in infix).strip()
             postfix = self.__postfix(infix)
+            # Verifico che la condizione sia soddisfatta
             if self.evaluate(postfix, d):
                 print("The condition {} from rule: {} is satisfied".format(cond.strip(), rule_name))
             else:
                 print("The condition {} from rule: {} is not satisfied".format(cond.strip(), rule_name))
-
-        '''
-        for condition in conditions:
-            if condition in d:
-                string = d[condition]
-                if string in self.vex:
-                    print("Found the string {}".format(string))
-        '''
 
     def __flat_dictionary(self, matches):
         d = {}
@@ -273,7 +224,6 @@ class Interpreter:
         # Crea il parser utilizzando la grammatica
         parser = lark.Lark.open(self.grammar_path / 'grammar.lark', rel_to=__file__, parser='lalr',
                                 postlex=TreeIndenter(), transformer=MyTransformer())
-        # print(parser.parse(test_tree).pretty())
         # Leggi il contenuto delle regole
         with open(self.rules_file, 'r') as f:
             data = f.read()
@@ -282,41 +232,14 @@ class Interpreter:
             MyTransformer
             '''
             transformed_tree = parser.parse(data)
-            # print(transformed_tree)
-
-        # print(transformed_tree.pretty())
-        # print(transformed_tree[0])
-
+        # Distinzione tra file di regole con una o più regole
         if isinstance(transformed_tree[0], str):
-            self.__check_conditions(transformed_tree)
+            self.__check_conditions(transformed_tree)  # Una regola
         else:
             for tree in transformed_tree:
-                self.__check_conditions(tree)
+                self.__check_conditions(tree)  # Più regole
 
-                # print(conditions)
-                # print(matches)
-                # print(conditions)
-                '''
-                Ho deciso di rappresentare le stringhe da matchare come lista di dizionari. Le stringhe:
-                $x = "PUT(rdx) = 0x0000000000000000"
-                $y = "PUT(rax) = 0x0000000000000002"
-                $z = "PUT(offset=184) = 0x00000000004012f4"
-                
-                saranno rappresentate come:
-                [{'x': 'PUT(rdx) = 0x0000000000000000'}, 
-                {'y': 'PUT(rax) = 0x0000000000000002'}, 
-                {'z': 'PUT(offset=184) = 0x00000000004012f4'}]
-                
-                E le condizioni come lista di condizioni. Per questa prima versione ho previsto solo condizioni del tipo
-                "esiste". Ad esempio, per verificare che la condizione $x = "PUT(rdx) = 0x00000000004012f4" sia verificata,
-                 nello statement condition della regola basta inserire $x.
-                
-                La rappresentazione a dizionario mi permette di verificare facilmente la presenza di una stringa. 
-                '''
 
-                # Appiattisco la lista di dizionari in un unico dizionario
-                # d = self.__flat_dictionary(matches)
-                # self.__search_conditions(conditions, d)
 
 
 def main():

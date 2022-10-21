@@ -41,6 +41,7 @@ class Lifter:
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
+    # Basic block da liftare appatartenenti ad una funzione indicata
     def __function_bb(self):
         basic_blocks = []
         for addr in self.functions_addr:
@@ -52,6 +53,7 @@ class Lifter:
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
+    # Basic block da liftare in un range dato
     def __range_bb(self):
         basic_blocks = []
         start = int(self.start_addr)
@@ -66,6 +68,7 @@ class Lifter:
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
+    # Basic block da liftare in a partire da un indirizzo
     def __addr_bb(self):
         basic_blocks = []
         start = int(self.start_addr)
