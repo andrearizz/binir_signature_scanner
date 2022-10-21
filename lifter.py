@@ -4,6 +4,12 @@ import sys
 import uuid
 
 
+def next_key(d, key):
+    keys = iter(d)
+    key in keys  # Terribile ma efficace
+    return next(keys, sys.maxsize)
+
+
 class Lifter:
     def __init__(self, binary, function='', start_addr=0, end_addr=0):
         self.binary = os.path.abspath(binary)
@@ -51,7 +57,8 @@ class Lifter:
         start = int(self.start_addr)
         end = int(self.end_addr)
         for addr in self.functions_addr:
-            if int(start <= addr <= end):
+            next_addr = next_key(self.functions_addr._function_map, addr)
+            if int(addr <= start < next_addr or start <= addr <= end):
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
         # Flat basic blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
@@ -62,9 +69,10 @@ class Lifter:
     def __addr_bb(self):
         basic_blocks = []
         start = int(self.start_addr)
-        print(start)
+        print(hex(start))
         for addr in self.functions_addr:
-            if int(start <= addr):
+            next_addr = next_key(self.functions_addr._function_map, addr)
+            if int(addr <= start < next_addr or addr >= start):
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
         # Flat basic blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
@@ -104,7 +112,7 @@ class Lifter:
 
 
 def main():
-    lifter = Lifter("server", function='main')
+    lifter = Lifter("server", start_addr=0x500024, end_addr=0x500036)
     print(lifter.lift())
 
 

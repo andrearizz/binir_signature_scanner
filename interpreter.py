@@ -124,6 +124,46 @@ class Interpreter:
                 postfix.append(op_stack.pop())
         return postfix
 
+    def __find(self, d, element):
+        imarks = []
+        found = False
+        with open(self.ir_file, 'r') as ir:
+            for line in ir:
+                hex_line = re.findall(r"0x[0-9a-f]+", line, re.I)
+                if hex_line:
+                    number = hex(int(hex_line[0], 0))
+                    line = line.replace(hex_line[0], number)
+                hex_cond = re.findall(r"0x[0-9a-f]+", d[element], re.I)
+                if hex_cond:
+                    d[element] = d[element].replace(hex_cond[0], hex(int(hex_cond[0], 0)))
+                mark = re.findall(r"^    00 | -+ IMark\(0x[0-9a-f]+, [0-9], [0-9]\) -+", line, re.I)
+                if mark:
+                    imarks.append(mark)
+                if "??" in d[element]:
+                    wildcard = 1
+                    instruction = re.split("\\?\\?", d[element])
+                    for ins in instruction:
+                        if ins not in line:
+                            wildcard = 0
+                            break
+                    if wildcard:
+                        address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks.pop()), re.I))
+                        print('Condition ${} = "{}" is satisfied for the istruction'
+                              ' at address: {} with instruction "{}"'.format(element, d[element], address,
+                                                                             line.strip().split("| ")[1]))
+                        found = True
+                        return found
+                if d[element] in line:
+                    address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks.pop()), re.I))
+                    print('Condition ${} = "{}" is satisfied for the istruction'
+                          ' at address: {}'.format(element, d[element], address))
+                    found = True
+                    return found
+            if not found:
+                print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))
+                found = False
+                return found
+
     def evaluate(self, postfix, d):
         stack = []
         for element in postfix:
@@ -135,7 +175,8 @@ class Interpreter:
                 if element == 'or':
                     stack.append(val1 or val2)
             else:
-                imarks = []
+                stack.append(self.__find(d, element))
+                '''imarks = []
                 found = 0
                 with open(self.ir_file, 'r') as ir:
                     for line in ir:
@@ -164,7 +205,7 @@ class Interpreter:
                             stack.append(True)
                     if not found:
                         stack.append(False)
-                        print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))
+                        print('Condition ${} = "{}" is not satisfied'.format(element, d[element]))'''
         return stack[0]
 
     def infix(self, conditions):
@@ -183,24 +224,26 @@ class Interpreter:
         # print(conditions)
         if len(conditions) == 1:
             # print(condition)
-            found = 0
-            imarks = []
-            if condition in d:
-                string = d[condition]
-                with open(self.ir_file, 'r') as ir:
-                    for line in ir:
-                        mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
-                        if mark:
-                            imarks.append(mark)
-                        if string in line:
-                            address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
-                            print("The condition ${} for the rule {} is satisfied for the"
-                                  " istruction at address {}".format(condition, rule_name, address))
-                            found = 1
-                            break
-                    if not found:
-                        print('The condition ${} = "{}" for the rule {} is not satisfied'.format(condition, string,
-                                                                                                 rule_name))
+            # found = 0
+            # imarks = []
+            # if condition in d:
+                # string = d[condition]
+            self.__find(d, condition)
+
+                # with open(self.ir_file, 'r') as ir:
+                #   for line in ir:
+                #      mark = re.findall(r"^    00 | -+ IMark\(0x[0-9A-F]+, [0-9], [0-9]\) -+", line, re.I)
+                #     if mark:
+                #        imarks.append(mark)
+                #   if string in line:
+                #      address = ''.join(re.findall(r"0x[0-9A-F]+", ''.join(imarks.pop()), re.I))
+                #     print("The condition ${} for the rule {} is satisfied for the"
+                #          " istruction at address {}".format(condition, rule_name, address))
+                #   found = 1
+                #  break
+                # if not found:
+                #    print('The condition ${} = "{}" for the rule {} is not satisfied'.format(condition, string,
+                #                                                                            rule_name))
 
         else:
             # infix = [y for x in conditions for y in (x if isinstance(x, list) else [x])]
