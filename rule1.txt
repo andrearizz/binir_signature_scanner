@@ -2,7 +2,12 @@ def rule_1:
     matches:
         $x = "PUT(rax) = 0x40130d"
         $y = "PUT(rip) = 0x40151d"
-        $z = "LDle:I??(??)"
+        $z = "LDle:I??(t3)"
     condition:
         $y and ($x or $z)
 
+def rule_2:
+    matches:
+        $x = "PUT(??) = 0x000000000060111c"
+    condition:
+        $x

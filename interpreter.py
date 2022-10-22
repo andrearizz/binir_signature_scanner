@@ -5,7 +5,6 @@ from pathlib import Path
 import os
 import re
 import json
-from collections.abc import MutableMapping
 
 
 # Classe usata da Lark per gestire l'indentazione
@@ -24,9 +23,6 @@ class MyTransformer(Transformer):
         super().__init__()
         self.cond = {}
         self.strings = {}
-        self.id_or = -1
-        self.id_and = -1
-        self.flag = 0
 
     def matches(self, items):
         variable = items[0]
@@ -81,7 +77,7 @@ class Interpreter:
             elif isinstance(el, list):
                 conditions = el[0]  # Condizioni
         d = self.__flat_dictionary(matches)  # Appiattisco il risultato in un'unica lista di stringhe da matchare
-        self.__search_conditions(conditions, d, rule_name)  # Cerco le condizioni nel file
+        self.__search_conditions(conditions, d, rule_name)  # Cerco le condizioni nel VEX
 
     def __priority(self, op1, op2):
         if (op1 == '(' or op1 == ')') or (op2 == '(' or op2 == ')'):
@@ -133,6 +129,7 @@ class Interpreter:
                 if hex_line:
                     number = hex(int(hex_line[0], 0))
                     line = line.replace(hex_line[0], number)
+
                 hex_cond = re.findall(r"0x[0-9a-f]+", d[element], re.I)
                 if hex_cond:
                     d[element] = d[element].replace(hex_cond[0], hex(int(hex_cond[0], 0)))
@@ -185,12 +182,12 @@ class Interpreter:
                 stack.append(self.__find(d, element))
         return stack[0]  # Il risultato finale della valutazione sta sempre nella posizione 0
 
-    # Da lista di liste di elementi ad un'unica lista di elementi in rappresentazione infissa
+    # Da lista di liste di elementi a un'unica lista di elementi in rappresentazione infissa
     def __infix(self, conditions):
         result = []
         if isinstance(conditions, (list, tuple)):
             for x in conditions:
-                result.extend(self.infix(x))
+                result.extend(self.__infix(x))
         else:
             result.append(conditions)
         return result
@@ -200,7 +197,11 @@ class Interpreter:
         condition = conditions[0]
         # Se la condizione non è composta
         if len(conditions) == 1:
-            self.__find(d, condition)
+            if self.__find(d, condition):
+                print("The condition ${} from rule: {} is satisfied".format(condition, rule_name))
+            else:
+                print("The condition ${} from rule: {} is not satisfied".format(condition, rule_name))
+
         # Se la condizione è composta
         else:
             # Utilizzo la reverse polish notation per la valutazione della condizione
@@ -238,8 +239,6 @@ class Interpreter:
         else:
             for tree in transformed_tree:
                 self.__check_conditions(tree)  # Più regole
-
-
 
 
 def main():
