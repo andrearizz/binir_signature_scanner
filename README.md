@@ -59,5 +59,29 @@ The condition $x from rule: rule_2 is not satisfied
 
 # Possibli miglioramenti
 
-Potrebbe essere utile, sempre in stile YARA, permettere di considerare condizioni del tipo `all of them` o `any of them` per indicare la ricerca rispettivamente di tutte le stringhe o di almeno una stringa tra quelle specificata. Inoltre, si potrebbe estendere questo tipo di condizioni permettendo espressioni del tipo `all of $x` in cui è possibile specificare più stringhe `$x` come `$x1, $x2` etc, in questa maniera la condizione richiederebbe che tutte le stringhe di tipo `$x` debbano essere soddisfatte. Analogamente si potrebbero rappresentare espressioni del tipo `any of $x` oppure `2 of $x` etc. Tutte queste espressioni dovrebbero comunque essere integrate anche con la valutazione delle espressioni booleane per permettere condizioni del tipo:
-`$y and all of $x` e così via.
+Potrebbe essere utile, sempre in stile YARA, permettere di considerare condizioni del tipo `all of them` o `any of them` per indicare la ricerca rispettivamente di tutte le stringhe o di almeno una stringa tra quelle specificata. Inoltre, si potrebbe estendere questo tipo di condizioni permettendo espressioni del tipo `all of ($x1 $x2)` in cui si vuole che sia $x1 che $x2 siano soddisfatte tale scrittura equivale a `$x1 and $x2`. Analogamente si potrebbero rappresentare espressioni del tipo `any of ($x $y)` oppure `2 of ($x $y $z)` etc. Tutte queste espressioni dovrebbero comunque essere integrate anche con la valutazione delle espressioni booleane per permettere condizioni del tipo:
+`$y and all of ($x $z)` e così via.
+
+Edit: 
+
+
+In questi giorni ho comunque implementato questa feature. A differenza di YARA, non è possibile fare ricerce del tipo `all of ($x*)` per richiedere che tutte le stringhe di tipo `$x` siano verificate. È necessario inserire tutte le stringhe che si vuole vengano verificate. Se esistono due stringhe di tipo `$x` come `$x1` e `$x2` bisognerà scrivere una condizione come la seguente: `all of ($x1 $x2)`. Segue un esempio che mostra l'utilizzo di regole del genere.
+
+Data la regola:
+```
+def rule_1:
+    matches:
+        $x1 = "PUT(rax) = 0x40130d"
+        $x2 = "PUT(rip) = 0x40151d"
+        $z = "LDle:I??(t3)"
+    condition:
+        all of ($x1 $x2) or $z
+```
+
+l'output sarà:
+```
+Condition $x1 = "PUT(rax) = 0x40130d" is not satisfied
+Condition $z = "LDle:I??(t3)" is satisfied for the istruction at address: 0x401457 with instruction "t6 = LDle:I32(t3)"
+The condition "all of ( $x1 $x2 ) or $z" from rule: "rule_1" is satisfied
+```
+Ed effettivamente è corretto in quanto la stringa `$x1` non è presente e questo basta ad invalidare la condizione `all of`, senza necessità di verificare anche la stringa `$x2` ma essendo presente la `$z` la condizione è verificata in quanto le due parti sono unite dalla condizione `or`.
