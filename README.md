@@ -65,7 +65,11 @@ Potrebbe essere utile, sempre in stile YARA, permettere di considerare condizion
 Edit: 
 
 
-In questi giorni ho comunque implementato questa feature. A differenza di YARA, non è possibile fare ricerce del tipo `all of ($x*)` per richiedere che tutte le stringhe di tipo `$x` siano verificate. È necessario inserire tutte le stringhe che si vuole vengano verificate. Se esistono due stringhe di tipo `$x` come `$x1` e `$x2` bisognerà scrivere una condizione come la seguente: `all of ($x1 $x2)`. Segue un esempio che mostra l'utilizzo di regole del genere.
+In questi giorni ho comunque implementato questa feature. A differenza di YARA, non è possibile fare ricerce del tipo `all of ($x*)` per richiedere che tutte le stringhe di tipo `$x` siano verificate. È necessario inserire tutte le stringhe che si vuole vengano verificate. Se esistono due stringhe di tipo `$x` come `$x1` e `$x2` bisognerà scrivere una condizione come la seguente: `all of ($x1 $x2)`.
+
+È anche possibile specificare il numero di condizioni che devono essere verificate con espressioni del tipo `2 of them`, `3 of ($x $y $z $w)` e così via.
+
+Segue un esempio che mostra l'utilizzo di regole del genere.
 
 Data la regola:
 ```
