@@ -9,9 +9,20 @@ matches: "$"NAME "=" STRING _NL+ [_INDENT matches* _DEDENT]
 condition: or_cond
 ?or_cond: and_cond (OR and_cond)*
 ?and_cond: atom (AND atom)*
-?atom: OPAR condition CPAR _NL* -> parenthesis
+?atom: OPAR condition+ CPAR _NL* -> parenthesis
+    | THEM _NL* -> them
     | "$"NAME _NL* -> terminal
+    | of_cond -> of
 
+?of_cond: ALL OF atom -> all
+    | ANY OF atom -> any
+    | NUMBER OF atom -> number
+
+NUMBER: /[1-9]\d*l?/i
+THEM: "them"
+ANY: "any"
+ALL: "all"
+OF: "of"
 OPAR: "("
 CPAR: ")"
 OR: "or"
