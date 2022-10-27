@@ -89,3 +89,23 @@ Condition $z = "LDle:I??(t3)" is satisfied for the istruction at address: 0x4014
 The condition "all of ( $x1 $x2 ) or $z" from rule: "rule_1" is satisfied
 ```
 Ed effettivamente è corretto in quanto la stringa `$x1` non è presente e questo basta ad invalidare la condizione `all of`, senza necessità di verificare anche la stringa `$x2` ma essendo presente la `$z` la condizione è verificata in quanto le due parti sono unite dalla condizione `or`.
+
+# Ricerca in sequenza
+
+È stata implementa la possibilità di ricercare pattern di codici in sequenza. Segue un'esempio di regola che identifica per architture x86_64, x86, aarch32 e aarch64, la chiamata alla system call `execve`.
+
+```
+def execve_syscall:
+    matches:
+        $x1 = "STle(??) = 0x00000000"
+        $x2 = "STle(??) = 0x00000000"
+        $x3 = "STle(??) = ??"
+        $y1 = "PUT(??) = 0x0"
+        $y2 = "PUT(??) = 0x0"
+        $y3 = "PUT(??) = ??"
+        $w = "PUT(r0) = ??"
+        $z = "Ijk_Call"
+    condition:
+       {$y1 1 $y2 1 $y3 1 $z} or {$x1 1 $x2 2 $x3 1 $z} or {$y1 1 $y2 2 $y3 1 $z} or {$y1 1 $y2 3 $w 1 $z}
+```
+Attualmente la regola è stata testa solamente con i file eseguibili, il quale codice sorgente è nel file `reverse_shell.c`, presenti tra i file disponibili.
