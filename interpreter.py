@@ -58,6 +58,9 @@ class MyTransformer(Transformer):
     def stmt(self, items):
         return items
 
+    def num(self, items):
+        return items
+
     def parenthesis(self, items):
         return items
 
@@ -67,6 +70,8 @@ class MyTransformer(Transformer):
     def condition(self, items):
         return items
 
+    def sequence(self, items):
+        return items
     def rule(self, items):
         return items
 
@@ -81,7 +86,7 @@ class Interpreter:
         self.ir_file = ir_file
         self.grammar_path = Path(".").parent
         # Elementi utili per la valutazione della condizione
-        self.tokens = ['and', 'or', '(', ')', 'any', 'all', 'them', 'of']
+        self.tokens = ['and', 'or', '(', ')', 'any', 'all', 'them', 'of', '{', '}']
         self.high = ['and']
         self.low = ['or']
 
@@ -154,6 +159,201 @@ class Interpreter:
                 found = False
                 return found
 
+    def __check_vex_row2(self, d, var):
+        found = False
+        imarks = []  # Lista degli indirizzi delle istruzioni da stampare
+        dist = 0
+        file = open(self.ir_file, 'r')
+        lines = file.readlines()
+        i = 0
+        j = 0
+        first_occurrence = 0
+        last_imark = ''
+        ind_imark = 0
+        while i < len(lines):
+            line = lines[i]
+            if j < len(var):
+                key = var[j]
+                if key.isnumeric():
+                    dist = int(key)
+                    j = j + 1
+                    key = var[j]
+                hex_line = re.findall(r"0x[0-9a-f]+", line, re.I)
+                if hex_line:
+                    number = hex(int(hex_line[0], 0))
+                    line = line.replace(hex_line[0], number)
+                # Ricerco l'indirizzo da appendere alla lista
+                mark = re.findall(r"^    00 | -+ IMark\(0x[0-9a-f]+, [0-9], [0-9]\) -+", line, re.I)
+                if mark:
+                    address1 = 0
+                    address2 = 0
+                    if len(imarks) > 0:
+                        address1 = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(mark), re.I))
+                        address2 = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                    imarks.append(mark)
+                    if address1 < address2:
+                        del imarks[:-1]
+                if "??" in d[key]:
+                    wildcard = 1
+                    instruction = re.split("\\?\\?", d[key])
+                    for ins in instruction:
+                        if ins not in line:
+                            wildcard = 0
+                            break
+                    if wildcard:
+                        if last_imark != '':
+                            # ind = imarks.index(last_imark)
+                            if imarks.index(imarks[-1]) - ind_imark == dist:
+                                address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                                instruction = line.strip()
+                                if "|" in instruction:
+                                    instruction = instruction.strip().split("| ")[1]
+                                print('Condition ${} = "{}" is satisfied for the istruction'
+                                      ' at address: {} with instruction "{}"'.format(key, d[key], address,
+                                                                                     instruction))
+                                found = True
+                                j = j + 1
+                                last_imark = imarks[-1]
+                                ind_imark = imarks.index(last_imark)
+                            else:
+                                found = False
+                                print("The next condition is satisfied in a wrong place")
+                                j = 0
+                                last_imark = ''
+                                del imarks[:-1]
+                                dist = 0
+                                i = first_occurrence
+                                ind_imark = 0
+                        else:
+                            first_occurrence = i
+                            address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                            instruction = line.strip()
+                            if "|" in instruction:
+                                instruction = instruction.strip().split("| ")[1]
+                            print('Condition ${} = "{}" is satisfied for the istruction'
+                                  ' at address: {} with instruction "{}"'.format(key, d[key], address,
+                                                                                 instruction))
+                            found = True
+                            j = j + 1
+                            last_imark = imarks[-1]
+                            ind_imark = imarks.index(last_imark)
+                elif d[key] in line:
+                    if last_imark != '':
+                        # ind = imarks.index(last_imark)
+                        if imarks.index(imarks[-1]) - ind_imark == dist:
+                            address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                            instruction = line.strip()
+                            if "|" in instruction:
+                                instruction = instruction.strip().split("| ")[1]
+                            print('Condition ${} = "{}" is satisfied for the istruction'
+                                  ' at address: {} with instruction "{}"'.format(key, d[key], address,
+                                                                                 instruction))
+                            found = True
+                            j = j + 1
+                            last_imark = imarks[-1]
+                        else:
+                            found = False
+                            print("The next condition is satisfied in a wrong place")
+                            j = 0
+                            last_imark = ''
+                            dist = 0
+                            del imarks[:-1]
+                            i = first_occurrence
+                            ind_imark = 0
+                    else:
+                        first_occurrence = i
+                        address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                        instruction = line.strip()
+                        if "|" in instruction:
+                            instruction = instruction.strip().split("| ")[1]
+                        print('Condition ${} = "{}" is satisfied for the istruction'
+                              ' at address: {} with instruction "{}"'.format(key, d[key], address,
+                                                                             instruction))
+                        found = True
+                        j = j + 1
+                        last_imark = imarks[-1]
+                        ind_imark = imarks.index(last_imark)
+                i = i + 1
+            else:
+                return found
+        return False
+
+    def __check_vex_row(self, d, var):
+        found = False
+        imarks = []  # Lista degli indirizzi delle istruzioni da stampare
+        blacklist = {}
+        in_row = []
+        flag = True
+        while flag:
+            with open(self.ir_file, 'r') as ir:
+                i = 0
+                last_imark = ''
+                dist = -1
+                for line in ir:
+                    if i < len(var):
+                        key = var[i]
+                        if key.isnumeric():
+                            dist = int(key)
+                            i = i + 1
+                            key = var[i]
+                        hex_line = re.findall(r"0x[0-9a-f]+", line, re.I)
+                        if hex_line:
+                            number = hex(int(hex_line[0], 0))
+                            line = line.replace(hex_line[0], number)
+                        # Ricerco l'indirizzo da appendere alla lista
+                        mark = re.findall(r"^    00 | -+ IMark\(0x[0-9a-f]+, [0-9], [0-9]\) -+", line, re.I)
+                        if mark:
+                            imarks.append(mark)
+                        if "??" in d[key]:
+                            wildcard = 1
+                            instruction = re.split("\\?\\?", d[key])
+                            for ins in instruction:
+                                if ins not in line:
+                                    wildcard = 0
+                                    break
+                            if wildcard:
+                                last_imark = imarks[-1]
+                                index = imarks.index(last_imark)
+                                if imarks.index(imarks[-1]) - index == dist:
+                                    address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                                    print('Condition ${} = "{}" is satisfied for the istruction'
+                                          ' at address: {} with instruction "{}"'.format(key, d[key], address,
+                                                                                         line.strip().split("| ")[1]))
+                                    found = True
+                                    i = i + 1
+                        elif d[key] in line and imarks[-1] not in blacklist.keys():
+                            if last_imark:
+                                ind = imarks.index(last_imark)
+                                if imarks.index(imarks[-1]) - ind == dist:
+                                    address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                                    print('Condition ${} = "{}" is satisfied for the istruction'
+                                          ' at address: {}'.format(key, d[key], address))
+                                    found = True
+                                    i = i + 1
+                                    last_imark = imarks[-1]
+                                else:
+                                    blacklist.update(in_row[0])
+                                    keys = in_row[0].keys()
+                                    key = ''
+                                    for k in keys:
+                                        key = k
+                                    val = in_row[0][k]
+                                    in_row.clear()
+                                    print("Black listed {} at {}".format(val, key))
+                                    imarks.clear()
+                                    break
+
+                            else:
+                                address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
+                                print('Condition ${} = "{}" is satisfied for the istruction'
+                                      ' at address: {}'.format(key, d[key], address))
+                                in_row.append(json.loads('{{"{}": "{}"}}'.format(imarks[-1], d[key])))
+                                found = True
+                                i = i + 1
+                                last_imark = imarks[-1]
+
+
+
     # Verifico che la singola stringa sia presente nel VEX
     def __find(self, d, element, token=''):
         if token == "all":
@@ -195,6 +395,8 @@ class Interpreter:
                     return True
                 else:
                     return False
+        elif isinstance(element, list) and not token:  # Search in a row
+            return self.__check_vex_row2(d, element)
         else:
             return self.__check_vex(d, element)
 
@@ -225,6 +427,7 @@ class Interpreter:
                     stack.append(val1 and val2)
                 elif op == 'or':
                     stack.append(val1 or val2)
+                operator_stack.pop()
             elif infix[i] == 'any' or infix[i] == 'all' or infix[i].isnumeric():
                 token = infix[i]
                 i = i + 2
@@ -239,8 +442,15 @@ class Interpreter:
                     stack.append(self.__find(d, infix[i], token=token))
                 else:  # something like all of ($x, $y) or 2 of ($x, $y, $z) or any of ($x, $y)
                     stack.append(self.__find(d, var, token))
+            elif infix[i] == '{':
+                var = []
+                i = i + 1
+                while infix[i] != '}':
+                    var.append(infix[i])
+                    i = i + 1
+                stack.append(self.__find(d, var))
             elif infix[i] in self.tokens:
-                while len(operator_stack) != 0 and self.__priority(infix[-1], infix[i]) >= 0:
+                while len(operator_stack) != 0 and self.__priority(operator_stack[-1], infix[i]) >= 0:
                     val2 = stack.pop()
                     val1 = stack.pop()
                     op = operator_stack.pop()
@@ -277,10 +487,11 @@ class Interpreter:
     # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice VEX
     def __search_conditions(self, conditions, d, rule_name):
         condition = conditions[0]
+        print(conditions)
         # print(condition)
         ret = False
         infix = self.__infix(conditions)
-        cond = ''.join("$" + val + " " if val not in self.tokens else val + " " for val in infix).strip()
+        cond = ''.join("$" + val + " " if val not in self.tokens and not val.isnumeric() else val + " " for val in infix).strip()
         # Se la condizione non è composta
         if len(conditions) == 1:
             if infix[0] == "all" or infix[0] == 'any' or infix[0].isnumeric():
@@ -342,7 +553,7 @@ class Interpreter:
 
 
 def main():
-    x = Interpreter("rule1.txt", "/tmp/ir-f4fd8ac0-52c1-11ed-ae57-beab88cf32ef")
+    x = Interpreter("rule1.txt", "/tmp/ir-5ed1c054-545e-11ed-a5db-beab88cf32ef")
     x.interprets()
 
 

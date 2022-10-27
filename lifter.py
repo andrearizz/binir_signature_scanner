@@ -61,10 +61,17 @@ class Lifter:
         for addr in self.functions_addr:
             next_addr = next_key(self.functions_addr._function_map, addr)
             if int(addr <= start < next_addr or start <= addr <= end):
+                print(self.functions_addr[addr].name)
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
         # Flat basic blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
         basic_blocks.sort()
+        i = 0
+        while i < len(basic_blocks):
+            if (basic_blocks[i] < start or basic_blocks[i] > end) and not (basic_blocks[i] <= start and end < basic_blocks[i + 1]):
+                del basic_blocks[i]
+            else:
+                i = i + 1
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
@@ -115,7 +122,7 @@ class Lifter:
 
 
 def main():
-    lifter = Lifter("server", start_addr=0x500024, end_addr=0x500036)
+    lifter = Lifter("reverse_shell32", start_addr=0x40134c, end_addr=0x401357)
     print(lifter.lift())
 
 

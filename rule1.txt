@@ -1,7 +1,12 @@
-def rule_1:
+def execve_syscall:
     matches:
-        $x1 = "PUT(rax) = 0x40130d"
-        $x2 = "PUT(rip) = 0x40151d"
-        $z = "LDle:I??(t3)"
+        $x1 = "STle(??) = 0x00000000"
+        $x2 = "STle(??) = 0x00000000"
+        $x3 = "STle(??) = ??"
+        $y1 = "PUT(??) = 0x0"
+        $y2 = "PUT(??) = 0x0"
+        $y3 = "PUT(??) = ??"
+        $w = "PUT(r0) = ??"
+        $z = "Ijk_Call"
     condition:
-        all of ($x1 $x2) or $z
+       {$y1 1 $y2 1 $y3 1 $z} or {$x1 1 $x2 2 $x3 1 $z} or {$y1 1 $y2 2 $y3 1 $z} or {$y1 1 $y2 3 $w 1 $z}

@@ -6,18 +6,22 @@ stmt: "matches" ":" _NL [_INDENT matches+ _DEDENT] "condition" ":" _NL [_INDENT 
 matches: "$"NAME "=" STRING _NL+ [_INDENT matches* _DEDENT]
 
 
-condition: or_cond
-?or_cond: and_cond (OR and_cond)*
-?and_cond: atom (AND atom)*
+condition: or_cond | sequence
+?sequence: OBR atom+ CBR (OR and_cond)* (AND atom)* (OR sequence)* (AND sequence)* _NL*
+?or_cond: and_cond (OR and_cond)* (OR sequence)*
+?and_cond: atom (AND atom)* (AND sequence)*
 ?atom: OPAR condition+ CPAR _NL* -> parenthesis
     | THEM _NL* -> them
     | "$"NAME _NL* -> terminal
     | of_cond -> of
+    | NUMBER -> num
 
 ?of_cond: ALL OF atom -> all
     | ANY OF atom -> any
     | NUMBER OF atom -> number
 
+OBR: "{"
+CBR: "}"
 NUMBER: /[1-9]\d*l?/i
 THEM: "them"
 ANY: "any"
