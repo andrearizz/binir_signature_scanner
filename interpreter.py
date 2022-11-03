@@ -6,6 +6,18 @@ import os
 import re
 import json
 
+HEX = r"0x[0-9a-f]+"
+REG = r"[a-zA-Z]+|t[0-9]+"  # Per semplicità al momento non considero i reali nomi di tutti i possibili registri
+WILD = r"\?\?"
+
+PUT = fr"PUT\(({REG}|{WILD})\) = ({REG}|{HEX}|{WILD})"
+ST = fr"ST(le|be|{WILD}\(({REG}|{HEX}|{WILD})\)) = ({REG}|{HEX}|{WILD})"
+ASSIGN = fr"(t[0-9]+|{WILD}) = "
+GET = fr"GET:I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
+LD = fr"LD(le|be|{WILD}):I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
+OP = fr"(((Add|Sub|CmpEQ)(8|16|32|64|{WILD}))\(({REG}|{HEX}|{WILD}),({REG}|{HEX}|{WILD})\))|" \
+     fr"((1Uto(8|16|32|64|{WILD}))|((8|16|32|64|{WILD})to1))\(({REG}|{HEX}|{WILD})\)"
+
 
 # Classe usata da Lark per gestire l'indentazione
 class TreeIndenter(Indenter):
@@ -72,6 +84,7 @@ class MyTransformer(Transformer):
 
     def sequence(self, items):
         return items
+
     def rule(self, items):
         return items
 
@@ -80,7 +93,7 @@ class MyTransformer(Transformer):
 
 
 class Interpreter:
-    def __init__(self, rules_file, ir_file):
+    def __init__(self, rules_file, ir_file, binary):
         # Prendi il nome del file delle regole, del binario in VEX e della grammatica
         self.rules_file = os.path.abspath(rules_file)
         self.ir_file = ir_file
@@ -89,7 +102,9 @@ class Interpreter:
         self.tokens = ['and', 'or', '(', ')', 'any', 'all', 'them', 'of', '{', '}']
         self.high = ['and']
         self.low = ['or']
-
+        file = open(binary, 'rb')
+        self.raw = file.read()
+        file.close()
     # Divido tra stringhe e condizione
     def __check_conditions(self, transformed_tree):
         matches = []
@@ -147,7 +162,7 @@ class Interpreter:
                                                                              line.strip().split("| ")[1]))
                         found = True
                         return found
-                # Se non siamo in presenza di wildcard verifico normalelmente la presenza
+                # Se non siamo in presenza di wildcard verifico normalmente la presenza
                 if d[key] in line:
                     address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks.pop()), re.I))
                     print('Condition ${} = "{}" is satisfied for the istruction'
@@ -278,6 +293,7 @@ class Interpreter:
                 return found
         return False
 
+    '''
     def __check_vex_row(self, d, var):
         found = False
         imarks = []  # Lista degli indirizzi delle istruzioni da stampare
@@ -351,23 +367,38 @@ class Interpreter:
                                 found = True
                                 i = i + 1
                                 last_imark = imarks[-1]
+    '''
 
-
+    def _is_raw(self, string):
+        if re.match(f'({PUT}|{ST}|{ASSIGN}({GET}|{LD}|{WILD}|t[0-9]+|{HEX}|{OP}))', string):
+            return False
+        return True
 
     # Verifico che la singola stringa sia presente nel VEX
     def __find(self, d, element, token=''):
         if token == "all":
             if element == "them":
                 for key in d.keys():
-                    if not self.__check_vex(d, key):
-                        return False
+                    if not self._is_raw(d[key]):
+                        if not self.__check_vex(d, key):
+                            return False
+                    else:
+                        if not d[key].encode() in self.raw:
+                            print(f"{d[key]} is not found")
+                            return False
                 return True
+
             else:  # something like all of ($x1 $x2 $y1) etc
                 for el in element:
                     for key in d.keys():
                         if el in key:
-                            if not self.__check_vex(d, key):
-                                return False
+                            if not self._is_raw(d[key]):
+                                if not self.__check_vex(d, key):
+                                    return False
+                            else:
+                                if not d[key].encode() in self.raw:
+                                    print(f"{d[key]} is not found")
+                                    return False
                     return True
         elif token.isnumeric() or token == "any":  # at least "number" or at least one (any)
             num = int(token) if token.isnumeric() else 1
@@ -375,8 +406,13 @@ class Interpreter:
             if element == "them":
                 for key in d.keys():
                     if count < num:
-                        if self.__check_vex(d, key):
-                            count = count + 1
+                        if not self._is_raw(d[key]):
+                            if self.__check_vex(d, key):
+                                count = count + 1
+                        else:
+                            if d[key].encode() in self.raw:
+                                print(f"{d[key]} found")
+                                count = count + 1
                     else:  # count >= num
                         return True
                 if count >= num:
@@ -387,8 +423,13 @@ class Interpreter:
                     for key in d.keys():
                         if el in key:
                             if count < num:
-                                if self.__check_vex(d, key):
-                                    count = count + 1
+                                if not self._is_raw(d[key]):
+                                    if self.__check_vex(d, key):
+                                        count = count + 1
+                                else:
+                                    if d[key].encode() in self.raw:
+                                        print(f"{d[key]} found")
+                                        count = count + 1
                             else:
                                 return True
                 if count >= num:
@@ -398,7 +439,13 @@ class Interpreter:
         elif isinstance(element, list) and not token:  # Search in a row
             return self.__check_vex_row2(d, element)
         else:
-            return self.__check_vex(d, element)
+            if not self._is_raw(d[element]):
+                return self.__check_vex(d, element)
+            else:
+                if d[element].encode() in self.raw:
+                    print(f"{d[element]} found")
+                    return True
+                return False
 
     # Da lista di liste di elementi a un'unica lista di elementi in rappresentazione infissa
     def __infix(self, conditions):
@@ -491,7 +538,8 @@ class Interpreter:
         # print(condition)
         ret = False
         infix = self.__infix(conditions)
-        cond = ''.join("$" + val + " " if val not in self.tokens and not val.isnumeric() else val + " " for val in infix).strip()
+        cond = ''.join(
+            "$" + val + " " if val not in self.tokens and not val.isnumeric() else val + " " for val in infix).strip()
         # Se la condizione non è composta
         if len(conditions) == 1:
             if infix[0] == "all" or infix[0] == 'any' or infix[0].isnumeric():

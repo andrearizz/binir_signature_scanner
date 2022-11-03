@@ -69,7 +69,7 @@ def main():
     vex = lift.lift()
 
     # Oggetto Interpreter che interpreterà le regole e verificherà che le condizioni siano soddisfatte
-    interpret = interpreter.Interpreter(rules, vex)
+    interpret = interpreter.Interpreter(rules, vex, binary)
     interpret.interprets()
 
 
