@@ -2,6 +2,6 @@ def rev_shell:
     matches:
         $s1 = "127.0.0.1"
         $s2 = "/bin/sh"
-        $x = "ST??(??) = 0x2329"
+        $x = "?? = 0x2329"
     condition:
         $s1 and $s2 and $x

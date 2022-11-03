@@ -138,7 +138,7 @@ class Interpreter:
     def _wildcard(self, wild_string, instr):
         i = 0
         j = 0
-        while i < len(wild_string):
+        while i < len(wild_string) and i < len(instr):
             if wild_string[i] != instr[i]:
                 if wild_string[i] == '?' and wild_string[i + 1] == '?':
                     wild_string = wild_string[i + 2:]
@@ -152,7 +152,7 @@ class Interpreter:
                 else:
                     return False
             i += 1
-        if i < len(instr) or i > len(instr):
+        if (i < len(instr) or i > len(instr)) or (i < len(wild_string) or i > len(wild_string)):
             return False
         else:
             return True
