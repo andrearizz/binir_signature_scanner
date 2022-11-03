@@ -122,7 +122,7 @@ class Lifter:
 
 
 def main():
-    lifter = Lifter("reverse_shell32", start_addr=0x40134c, end_addr=0x401357)
+    lifter = Lifter("binaries/reverse_shell", start_addr=0x40125b, end_addr=0x401265)
     print(lifter.lift())
 
 

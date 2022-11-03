@@ -3,8 +3,5 @@ def rev_shell:
         $s1 = "127.0.0.1"
         $s2 = "/bin/sh"
         $x = "ST??(??) = 0x2329"
-        $y1 = "?? = 0x0"
-        $y2 = "?? = 0x1"
-        $y3 = "?? = 0x2"
     condition:
-        $s1 and $s2 and $x and {$y1 1 $y2 1 $y3}
+        $s1 and $s2 and $x
