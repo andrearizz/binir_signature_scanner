@@ -15,7 +15,7 @@ ST = fr"ST(le|be|{WILD}\(({REG}|{HEX}|{WILD})\)) = ({REG}|{HEX}|{WILD})"
 ASSIGN = fr"(t[0-9]+|{WILD}) = "
 GET = fr"GET:I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
 LD = fr"LD(le|be|{WILD}):I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
-OP = fr"(((Add|Sub|CmpEQ)(8|16|32|64|{WILD}))\(({REG}|{HEX}|{WILD}),({REG}|{HEX}|{WILD})\))|" \
+OP = fr"(((Add|Sub|CmpEQ|Xor)(8|16|32|64|{WILD}))\(({REG}|{HEX}|{WILD}),({REG}|{HEX}|{WILD})\))|" \
      fr"((1Uto(8|16|32|64|{WILD}))|((8|16|32|64|{WILD})to1))\(({REG}|{HEX}|{WILD})\)"
 
 
