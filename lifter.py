@@ -3,6 +3,8 @@ import os
 import sys
 import uuid
 
+import archinfo
+
 
 def next_key(d, key):
     keys = iter(d)
@@ -101,7 +103,7 @@ class Lifter:
     def lift(self):
         # Crea un file temporaneo in cui scrivere il codice in VEX
         uid = uuid.uuid1()
-        filename = "/tmp/ir-{}".format(uid)
+        filename = "/tmp/ir-{}-{}".format(uid, self.proj.arch.name)
 
         if self.function:
             irsbs = self.__irsb(self.__function_bb())

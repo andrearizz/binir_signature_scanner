@@ -22,7 +22,7 @@ condition: or_cond | sequence
 
 OBR: "{"
 CBR: "}"
-NUMBER: /[1-9]\d*l?/i
+NUMBER: /[0-9]\d*l?/i
 THEM: "them"
 ANY: "any"
 ALL: "all"

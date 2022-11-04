@@ -272,7 +272,7 @@ class Interpreter:
                                 ind_imark = imarks.index(last_imark)
                 instr = re.split(r" \| ", line)
                 if len(instr) > 1:
-                    if d[key] == instr[1]:
+                    if d[key] == instr[1].strip():
                         if last_imark != '':
                             # ind = imarks.index(last_imark)
                             if imarks.index(imarks[-1]) - ind_imark == dist:
@@ -314,7 +314,7 @@ class Interpreter:
         return False
 
     def _is_raw(self, string):
-        if re.match(f'({PUT}|{ST}|{ASSIGN}({GET}|{LD}|{WILD}|t([0-9]+|{WILD})|{HEX}|{OP}))', string):
+        if re.match(f'({PUT}|{ST}|{WILD}|{ASSIGN}({GET}|{LD}|{WILD}|t([0-9]+|{WILD})|{HEX}|{OP}))', string):
             return False
         return True
 
