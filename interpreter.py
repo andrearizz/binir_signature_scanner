@@ -545,7 +545,7 @@ class Interpreter:
 
 
 def main():
-    x = Interpreter("rule1.txt", "/tmp/ir-5ed1c054-545e-11ed-a5db-beab88cf32ef")
+    x = Interpreter("rules/rule1.txt", "/tmp/ir-5ed1c054-545e-11ed-a5db-beab88cf32ef")
     x.interprets()
 
 

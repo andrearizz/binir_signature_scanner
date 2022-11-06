@@ -1,0 +1,12 @@
+def xor_encr:
+    matches:
+        $xor64 = "?? = Xor??(??,??)"
+        $y1 = "?? = 64to32(??)"
+        $y3 = "?? = 32Uto64(??)"
+        $z1 = "PUT(??) = ??"
+        $z2 = "?? = GET:I??(??)"
+        $s1 = "execve"
+        $s2 = "socket"
+        $s3 = "connect"
+    condition:
+        ({$y1 0 $y1 0 $xor 0 $y3} or {$z2 0 $xor} or {$xor 0 $z1}) and all of ($s1 $s2 $s3)
