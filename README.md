@@ -59,13 +59,10 @@ The condition $x from rule: rule_2 is not satisfied
 
 # Possibli miglioramenti
 
-Potrebbe essere utile, sempre in stile YARA, permettere di considerare condizioni del tipo `all of them` o `any of them` per indicare la ricerca rispettivamente di tutte le stringhe o di almeno una stringa tra quelle specificata. Inoltre, si potrebbe estendere questo tipo di condizioni permettendo espressioni del tipo `all of ($x1 $x2)` in cui si vuole che sia $x1 che $x2 siano soddisfatte tale scrittura equivale a `$x1 and $x2`. Analogamente si potrebbero rappresentare espressioni del tipo `any of ($x $y)` oppure `2 of ($x $y $z)` etc. Tutte queste espressioni dovrebbero comunque essere integrate anche con la valutazione delle espressioni booleane per permettere condizioni del tipo:
+È possibile permettere di specificare condizioni del tipo `all of them` o `any of them` per indicare la ricerca rispettivamente di tutte le stringhe o di almeno una stringa tra quelle specificata. Inoltre, si potrebbe estendere questo tipo di condizioni permettendo espressioni del tipo `all of ($x1 $x2)` in cui si vuole che sia $x1 che $x2 siano soddisfatte tale scrittura equivale a `$x1 and $x2`. Analogamente si potrebbero rappresentare espressioni del tipo `any of ($x $y)` oppure `2 of ($x $y $z)` etc. Tutte queste espressioni dovrebbero comunque essere integrate anche con la valutazione delle espressioni booleane per permettere condizioni del tipo:
 `$y and all of ($x $z)` e così via.
-
-Edit: 
-
-
-In questi giorni ho comunque implementato questa feature. A differenza di YARA, non è possibile fare ricerce del tipo `all of ($x*)` per richiedere che tutte le stringhe di tipo `$x` siano verificate. È necessario inserire tutte le stringhe che si vuole vengano verificate. Se esistono due stringhe di tipo `$x` come `$x1` e `$x2` bisognerà scrivere una condizione come la seguente: `all of ($x1 $x2)`.
+ 
+A differenza di YARA, non è possibile fare ricerce del tipo `all of ($x*)` per richiedere che tutte le stringhe di tipo `$x` siano verificate. È necessario inserire tutte le stringhe che si vuole vengano verificate. Se esistono due stringhe di tipo `$x` come `$x1` e `$x2` bisognerà scrivere una condizione come la seguente: `all of ($x1 $x2)`.
 
 È anche possibile specificare il numero di condizioni che devono essere verificate con espressioni del tipo `2 of them`, `3 of ($x $y $z $w)` e così via.
 
@@ -109,3 +106,21 @@ def execve_syscall:
        {$y1 1 $y2 1 $y3 1 $z} or {$x1 1 $x2 2 $x3 1 $z} or {$y1 1 $y2 2 $y3 1 $z} or {$y1 1 $y2 3 $w 1 $z}
 ```
 Attualmente la regola è stata testa solamente con i file eseguibili, il quale codice sorgente è nel file `reverse_shell.c`, presenti tra i file disponibili.
+
+# Ricerca di valori nei dati RAW
+
+Per poter analizzare in maniera migliore un binario, una sola analisi statica sul codice è spesso troppo limitante. 
+Avendo comunque a disposizione il file binario si è deciso di estrarre dati "utili" come i valori di determinate stringhe, direttamente dai dati raw.
+In questa maniera è possibile analizzare anche da un punto di vista più semantico il binario, combinando aspetti semantici e aspetti sintattici.
+
+Sono state scritte due signature (cartella `rules`) che cercano di catturare il comportamento di una reverse shell.
+Se si sa che un programma (in questo caso malevolo) si connette sempre attraverso la stessa porta (9001 in questo caso)
+sempre allo stesso indirizzo ip (127.0.0.1 in questo caso), la signature cerca di catturare l'utilizzo di tale porta (nel codice VEX) e 
+di considerare eventuali valori nel raw come indirizzo ip e chiamate a funzione della libc come execve, socket etc.
+
+La seconda signature, `rule2.txt`, considera un caso semplice di programma malevolo "offuscato". Infatti, se nell'esempio precedente 
+si sapeva a priori il valore della porta e dell'indirizzo ip, qui si considera un caso in cui tali valori sono cifrati.
+Banalmente, il codice (sorgente nella cartella `sources`) utilizza dei valori (come l'indirizzo ip) precedentemente cifrati tramite xor e
+ha a disposizione la chiave di cifratura e decifratura. Dunque, prima di utilizzarli decifra tali valori. La signature cerca di catturare il comportamento
+dell'operazione di XOR analizzando il comportamento di tale funzione dal punto di vista del codice in IR, unita ad aspetti semantici come chiamate 
+alle funzioni precedentemente discusse per il primo esempio.
