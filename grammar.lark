@@ -1,24 +1,32 @@
+
+
+
 ?start: _NL* rule+
-
-rule: "def" NAME ":" _NL* [_INDENT stmt _DEDENT]
-
-stmt: "matches" ":" _NL [_INDENT matches+ _DEDENT] "condition" ":" _NL [_INDENT condition+ _DEDENT]
-matches: "$"NAME "=" STRING _NL+ [_INDENT matches* _DEDENT]
-
-
+rule: "def" NAME ":" _NL [_INDENT stmt _DEDENT]
+stmt: "matches" ":" _NL [_INDENT matches+ _DEDENT] "condition" ":" _NL [_INDENT condition _DEDENT]
+matches: "$"NAME "=" STRING _NL [_INDENT matches* _DEDENT]
 condition: or_cond | sequence
-?sequence: OBR atom+ CBR (OR and_cond)* (AND atom)* (OR sequence)* (AND sequence)* _NL*
+?sequence: OBR seq+ CBR (OR and_cond)* (AND atom)* (OR sequence)* (AND sequence)* _NL*
 ?or_cond: and_cond (OR and_cond)* (OR sequence)*
 ?and_cond: atom (AND atom)* (AND sequence)*
 ?atom: OPAR condition+ CPAR _NL* -> parenthesis
-    | THEM _NL* -> them
-    | "$"NAME _NL* -> terminal
+    | terminal _NL*
     | of_cond -> of
-    | NUMBER -> num
+terminal: "$"NAME
+?seq: terminal (NUMBER terminal)* _NL*
+?thm: THEM _NL* -> them
+    | OPAR terminal+ CPAR _NL* -> parenthesis
+?of_cond: ALL OF thm -> all
+    | ANY OF thm -> any
+    | NUMBER OF thm -> number
 
-?of_cond: ALL OF atom -> all
-    | ANY OF atom -> any
-    | NUMBER OF atom -> number
+
+%import common.ESCAPED_STRING -> STRING
+%import common.CNAME -> NAME
+%import common.WS_INLINE
+%declare _INDENT _DEDENT
+%ignore WS_INLINE
+_NL: /(\r?\n[\t ]*)+/
 
 OBR: "{"
 CBR: "}"
@@ -31,9 +39,3 @@ OPAR: "("
 CPAR: ")"
 OR: "or"
 AND: "and"
-%import common.ESCAPED_STRING -> STRING
-%import common.CNAME -> NAME
-%import common.WS_INLINE
-%declare _INDENT _DEDENT
-%ignore WS_INLINE
-_NL: /(\r?\n[\t ]*)+/

@@ -25,37 +25,34 @@ class Lifter:
         self.function = function
         self.start_addr = start_addr
         self.end_addr = end_addr
-        '''
-        Oggetto accessibile come dizionario contenente l'indirizzo e il nome delle funzioni del binario. 
-        Iterabile attraverso l'indirizzo delle funzioni (vedi __all_bb())
-        '''
+
         self.functions_addr = self.cfg.kb.functions
 
-    # Ottieni tutti i basic block del binario
-    def __all_bb(self):
-        basic_blocks = []
+    # Ottieni tutti i super block del binario
+    def __all_sb(self):
+        super_blocks = []
         for addr in self.functions_addr:
-            basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
+            super_blocks.append(list(self.functions_addr[addr].block_addrs_set))
 
         # Flat basic blocks
-        basic_blocks = [item for sublist in basic_blocks for item in sublist]
-        basic_blocks.sort()
-        # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
-        return basic_blocks
+        super_blocks = [item for sublist in super_blocks for item in sublist]
+        super_blocks.sort()
+        # La lista di ritorno è composta dagli indirizzi d'inizio di ogni super block
+        return super_blocks
 
-    # Basic block da liftare appatartenenti ad una funzione indicata
+    # Super block da liftare appatartenenti ad una funzione indicata
     def __function_bb(self):
         basic_blocks = []
         for addr in self.functions_addr:
             if self.functions_addr[addr].name == self.function:
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
-        # Flat basic blocks
+        # Flat Super blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
         basic_blocks.sort()
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
-    # Basic block da liftare in un range dato
+    # Super block da liftare in un range dato
     def __range_bb(self):
         basic_blocks = []
         start = int(self.start_addr)
@@ -65,7 +62,7 @@ class Lifter:
             if int(addr <= start < next_addr or start <= addr <= end):
                 print(self.functions_addr[addr].name)
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
-        # Flat basic blocks
+        # Flat Super blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
         basic_blocks.sort()
         i = 0
@@ -77,7 +74,7 @@ class Lifter:
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
-    # Basic block da liftare in a partire da un indirizzo
+    # Super block da liftare in IR a partire da un indirizzo
     def __addr_bb(self):
         basic_blocks = []
         start = int(self.start_addr)
@@ -86,18 +83,17 @@ class Lifter:
             next_addr = next_key(self.functions_addr._function_map, addr)
             if int(addr <= start < next_addr or addr >= start):
                 basic_blocks.append(list(self.functions_addr[addr].block_addrs_set))
-        # Flat basic blocks
+        # Flat Super blocks
         basic_blocks = [item for sublist in basic_blocks for item in sublist]
         basic_blocks.sort()
         # La lista di ritorno è composta dagli indirizzi di inizio di ogni basic block
         return basic_blocks
 
-    # Ottieni la lista di ogni basic block in VEX
-    def __irsb(self, basic_blocks):
+    # Ottieni la lista di ogni super block in VEX
+    def __irsb(self, super_blocks):
         irsbs = []
-        for block in basic_blocks:
+        for block in super_blocks:
             irsbs.append(self.proj.factory.block(block).vex)
-        # print(irsbs)
         return irsbs
 
     def lift(self):
@@ -113,7 +109,7 @@ class Lifter:
             irsbs = self.__irsb(self.__addr_bb())
         else:
             # Ottieni tutti i basic block
-            irsbs = self.__irsb(self.__all_bb())
+            irsbs = self.__irsb(self.__all_sb())
 
         for ir in irsbs:
             with open(filename, "a") as sys.stdout:  # Redirigi lo standard output verso il file temporaneo

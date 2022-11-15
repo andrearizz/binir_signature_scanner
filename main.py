@@ -5,7 +5,7 @@ import os
 
 
 def init_parser():
-    description = "Tool for verify VEX IR signature in binary files through a rule file"
+    description = "Tool for scanning VEX IR signature in binary files through a rule file"
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -57,7 +57,6 @@ def main():
     binary = os.path.abspath(args.binary_file)
     rules = os.path.abspath(args.rules_file)
 
-    # Oggetto lifter e filename contenente la trasposizione in IR del binario
     if args.function:
         lift = lifter.Lifter(binary, function=args.function)
     elif args.start and args.end:
@@ -68,7 +67,7 @@ def main():
         lift = lifter.Lifter(binary)
     vex = lift.lift()
 
-    # Oggetto Interpreter che interpreterà le regole e verificherà che le condizioni siano soddisfatte
+    # Oggetto Interpreter che interpreterà le regole ed eseguirà la signature scanning
     interpret = interpreter.Interpreter(rules, vex, binary)
     interpret.interprets()
 

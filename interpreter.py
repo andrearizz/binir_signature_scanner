@@ -33,7 +33,6 @@ class TreeIndenter(Indenter):
 class MyTransformer(Transformer):
     def __init__(self):
         super().__init__()
-        self.cond = {}
         self.strings = {}
 
     def matches(self, items):
@@ -52,7 +51,10 @@ class MyTransformer(Transformer):
         return items
 
     def them(self, items):
-        print(items)
+
+        return items
+
+    def seq(self, items):
         return items
 
     def all(self, items):
@@ -105,6 +107,7 @@ class Interpreter:
         file = open(binary, 'rb')
         self.raw = file.read()
         file.close()
+
     # Divido tra stringhe e condizione
     def __check_conditions(self, transformed_tree):
         matches = []
@@ -478,10 +481,11 @@ class Interpreter:
     # Verifico che la condizione sia presente tra le stringhe e se lo è verifico che la stringa esista nel codice VEX
     def __search_conditions(self, conditions, d, rule_name):
         condition = conditions[0]
-        print(conditions)
+        # print(conditions)
         # print(condition)
         ret = False
         infix = self.__infix(conditions)
+        print(infix)
         cond = ''.join(
             "$" + val + " " if val not in self.tokens and not val.isnumeric() else val + " " for val in infix).strip()
         # Se la condizione non è composta
@@ -527,6 +531,7 @@ class Interpreter:
         # Crea il parser utilizzando la grammatica
         parser = lark.Lark.open(self.grammar_path / 'grammar.lark', rel_to=__file__, parser='lalr',
                                 postlex=TreeIndenter(), transformer=MyTransformer())
+
         # Leggi il contenuto delle regole
         with open(self.rules_file, 'r') as f:
             data = f.read()
