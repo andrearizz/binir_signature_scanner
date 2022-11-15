@@ -1,0 +1,12 @@
+def xor_encr:
+    matches:
+        $xor = "?? = Xor32(??,??)"
+        $and = "?? = And32(??)"
+        $z1 = "PUT(??) = ??"
+        $z2 = "?? = ??8(??)"
+        $z3 = "ST??(??) = ??"
+        $s1 = "execve"
+        $s2 = "socket"
+        $s3 = "connect"
+    condition:
+        ({$xor 1 $and 1 $z2 0 $z3 0 $z1} or {$xor 1 $z1 1 $z2 0 $z3 0 $z1} or {$xor 0 $z1 1 $z2 0 $z3 0 $z1}) and all of ($s1 $s2 $s3)
