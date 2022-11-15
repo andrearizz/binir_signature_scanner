@@ -150,6 +150,8 @@ class Interpreter:
                         return True
                     while wild_string[i] != instr[j]:
                         j += 1
+                        if j >= len(instr):
+                            return False
                     instr = instr[j:]
                     return self._wildcard(wild_string, instr)
                 else:
