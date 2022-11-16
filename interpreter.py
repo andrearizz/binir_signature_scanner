@@ -15,7 +15,7 @@ ST = fr"ST(le|be|{WILD}\(({REG}|{HEX}|{WILD})\)) = ({REG}|{HEX}|{WILD})"
 ASSIGN = fr"(t[0-9]+|{WILD}) = "
 GET = fr"GET:I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
 LD = fr"LD(le|be|{WILD}):I(8|16|32|64|{WILD})\(({REG}|{HEX}|{WILD})\)"
-OP = fr"(((Add|Sub|CmpEQ|Xor)(8|16|32|64|{WILD}))\(({REG}|{HEX}|{WILD}),({REG}|{HEX}|{WILD})\))|" \
+OP = fr"(((Add|Sub|CmpEQ|CmpLT|Xor|And|DivS|Div|DivMod)(8|16|32|64|{WILD}))\(({REG}|{HEX}|{WILD}),({REG}|{HEX}|{WILD})\))|" \
      fr"((1Uto(8|16|32|64|{WILD}))|((8|16|32|64|{WILD})to1))\(({REG}|{HEX}|{WILD})\)"
 
 
@@ -51,7 +51,6 @@ class MyTransformer(Transformer):
         return items
 
     def them(self, items):
-
         return items
 
     def seq(self, items):
@@ -196,7 +195,7 @@ class Interpreter:
                         found = True
                         return found
             if not found:
-                print('Condition ${} = "{}" is not satisfied'.format(key, d[key]))
+                # print('Condition ${} = "{}" is not satisfied'.format(key, d[key]))
                 found = False
                 return found
 
@@ -212,6 +211,7 @@ class Interpreter:
         last_imark = ''
         ind_imark = 0
         while i < len(lines):
+
             line = lines[i]
             if j < len(var):
                 key = var[j]
@@ -240,8 +240,8 @@ class Interpreter:
                         instr = instr[1]
                         if self._wildcard(d[key], instr.strip()):
                             if last_imark != '':
-                                # ind = imarks.index(last_imark)
-                                if imarks.index(imarks[-1]) - ind_imark == dist:
+                                # ind_imark = imarks.index(last_imark)
+                                if imarks.index(imarks[-1]) - ind_imark <= dist:
                                     address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
                                     instruction = line.strip()
                                     if "|" in instruction:
@@ -293,7 +293,7 @@ class Interpreter:
                                 last_imark = imarks[-1]
                             else:
                                 found = False
-                                print("The next condition is satisfied in a wrong place")
+                                # print("The next condition is satisfied in a wrong place")
                                 j = 0
                                 last_imark = ''
                                 dist = 0
@@ -335,6 +335,8 @@ class Interpreter:
                         if not d[key].encode() in self.raw:
                             print(f"{d[key]} is not found")
                             return False
+                        else:
+                            print(f"{d[key]} found")
                 return True
 
             else:  # something like all of ($x1 $x2 $y1) etc
@@ -348,7 +350,10 @@ class Interpreter:
                                 if not d[key].encode() in self.raw:
                                     print(f"{d[key]} is not found")
                                     return False
-                    return True
+                                else:
+                                    print(f"{d[key]} found")
+                                    break
+                return True
         elif token.isnumeric() or token == "any":  # at least "number" or at least one (any)
             num = int(token) if token.isnumeric() else 1
             count = 0
@@ -386,7 +391,17 @@ class Interpreter:
                 else:
                     return False
         elif isinstance(element, list) and not token:  # Search in a row
-            return self.__check_vex_row2(d, element)
+            if self.__check_vex_row2(d, element):
+                print("\n\n---------------- Found sequence: ", end='')
+                for el in element:
+                    if not el.isnumeric() and el not in self.tokens:
+                        print("$" + el, end=' ')
+                    else:
+                        print(el, end=' ')
+                print("----------------\n\n")
+                return True
+            else:
+                return False
         else:
             if not self._is_raw(d[element]):
                 return self.__check_vex(d, element)
@@ -487,7 +502,7 @@ class Interpreter:
         # print(condition)
         ret = False
         infix = self.__infix(conditions)
-        print(infix)
+        #print(infix)
         cond = ''.join(
             "$" + val + " " if val not in self.tokens and not val.isnumeric() else val + " " for val in infix).strip()
         # Se la condizione non è composta

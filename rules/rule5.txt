@@ -1,0 +1,18 @@
+def xor_encr:
+    matches:
+        $xor = "?? = Xor32(??,??)"
+        $div = "?? = Div??(??,??)"
+        $y1 = "?? = Add??(??,??)"
+        $y2 = "?? = Sub??(??,??)"
+        $y3 = "?? = LD??:I??(??)"
+        $eq = "?? = CmpEQ??(??,0x0)"
+        $d = "idivmod"
+        $s1 = "execve"
+        $s2 = "socket"
+        $s3 = "connect"
+        $s4 = "WSASocketA"
+        $s5 = "CreateProcessA"
+    condition:
+        $d or {$eq 0 $div} and ({$y1 0 $y3 3 $xor} or {$y2 0 $y3 3 $xor}) and (all of ($s1 $s2 $s3) or all of ($s3 $s4 $s5))
+
+
