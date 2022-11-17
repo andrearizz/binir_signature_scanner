@@ -280,7 +280,7 @@ class Interpreter:
                     if d[key] == instr[1].strip():
                         if last_imark != '':
                             # ind = imarks.index(last_imark)
-                            if imarks.index(imarks[-1]) - ind_imark == dist:
+                            if imarks.index(imarks[-1]) - ind_imark <= dist:
                                 address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
                                 instruction = line.strip()
                                 if "|" in instruction:

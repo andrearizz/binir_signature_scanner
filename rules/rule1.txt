@@ -5,6 +5,12 @@ def rev_shell:
         $s3 = "connect"
         $s4 = "execve"
         $s5 = "socket"
-        $x = "?? = 0x00002329"
+        $x = "ST??(??) = 0x00002329"
+        $s6 = "WSASocketA"
+        $s7 = "CreateProcessA"
+        $s8 = "cmd"
     condition:
-        all of them
+        all of ($s1 $s3 $x) and (all of ($s2 $s4 $s5) or all of ($s8 $s6 $s7))
+
+
+
