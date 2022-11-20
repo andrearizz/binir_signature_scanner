@@ -7,3 +7,4 @@ def bubble_sort:
 		$add1 = "?? = Add??(??,0x1)"
 	condition:
 		{$sh 1 $add 0 $load 1 $add 1 $load 1 $add 1 $add 1 $load 2 $add1 1 $sh 2 $add 0 $load 1 $add 1 $add 0 $load 2 $sh 1 $add 0 $load 1 $add 1 $load 2 $add 0 $load 2 $add1 1 $sh 1 $add 0 $load 1 $add 1 $add 0 $load 2 $add 0 $load 1 $add 2 $load}
+

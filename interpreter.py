@@ -123,6 +123,7 @@ class Interpreter:
             hex_cond = re.findall(r"0x[0-9a-f]+", d[element], re.I)
             if hex_cond:
                 d[element] = d[element].replace(hex_cond[0], hex(int(hex_cond[0], 0)))
+                print(d[element])
         self.__search_conditions(conditions, d, rule_name)  # Cerco le condizioni nel VEX
 
     def __priority(self, op1, op2):
@@ -210,8 +211,9 @@ class Interpreter:
         first_occurrence = 0
         last_imark = ''
         ind_imark = 0
+        first_imark = ''
+        previous_imarks = []
         while i < len(lines):
-
             line = lines[i]
             if j < len(var):
                 key = var[j]
@@ -231,16 +233,26 @@ class Interpreter:
                     if len(imarks) > 0:
                         address1 = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(mark), re.I))
                         address2 = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
-                    imarks.append(mark)
-                    if address1 < address2:
-                        del imarks[:-1]
+                    if mark not in imarks:
+                        imarks.append(mark)
+                    else:
+                        i = i + 1
+                        while True:
+                            line = lines[i]
+                            mark2 = re.findall(r"^    00 | -+ IMark\(0x[0-9a-f]+, [0-9], [0-9]\) -+", line, re.I)
+                            if mark2 and mark2 not in imarks:
+                                imarks.append(mark2)
+                                break
+                            i = i + 1
+                    #if address1 < address2:
+                    #    del imarks[:-1]
                 if "??" in d[key]:
                     instr = re.split(r" \| ", line)
                     if len(instr) > 1:
                         instr = instr[1]
                         if self._wildcard(d[key], instr.strip()):
                             if last_imark != '':
-                                # ind_imark = imarks.index(last_imark)
+                                ind_imark = imarks.index(last_imark)
                                 if imarks.index(imarks[-1]) - ind_imark <= dist:
                                     address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
                                     instruction = line.strip()
@@ -252,18 +264,20 @@ class Interpreter:
                                     found = True
                                     j = j + 1
                                     last_imark = imarks[-1]
-                                    ind_imark = imarks.index(last_imark)
+                                    #ind_imark = imarks.index(last_imark)
                                 else:
                                     found = False
                                     print("The next condition is satisfied in a wrong place")
                                     j = 0
+                                    imarks.clear()
+                                    imarks.append(first_imark)
                                     last_imark = ''
-                                    del imarks[:-1]
                                     dist = 0
                                     i = first_occurrence
                                     ind_imark = 0
                             else:
                                 first_occurrence = i
+                                first_imark = imarks[-1]
                                 address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
                                 instruction = line.strip()
                                 if "|" in instruction:
@@ -279,7 +293,7 @@ class Interpreter:
                 if len(instr) > 1:
                     if d[key] == instr[1].strip():
                         if last_imark != '':
-                            # ind = imarks.index(last_imark)
+                            ind_imark = imarks.index(last_imark)
                             if imarks.index(imarks[-1]) - ind_imark <= dist:
                                 address = ''.join(re.findall(r"0x[0-9a-f]+", ''.join(imarks[-1]), re.I))
                                 instruction = line.strip()
@@ -293,11 +307,12 @@ class Interpreter:
                                 last_imark = imarks[-1]
                             else:
                                 found = False
-                                # print("The next condition is satisfied in a wrong place")
+                                print("The next condition is satisfied in a wrong place")
                                 j = 0
+                                imarks.clear()
+                                imarks.append(last_imark)
                                 last_imark = ''
                                 dist = 0
-                                del imarks[:-1]
                                 i = first_occurrence
                                 ind_imark = 0
                         else:
@@ -314,6 +329,19 @@ class Interpreter:
                             last_imark = imarks[-1]
                             ind_imark = imarks.index(last_imark)
                 i = i + 1
+                if i == len(lines) and j < len(var):
+                    if previous_imarks == imarks:
+                        return False
+                    previous_imarks = imarks
+                    found = False
+                    print("The next condition is not present")
+                    j = 0
+                    imarks.clear()
+                    imarks.append(last_imark)
+                    last_imark = ''
+                    dist = 0
+                    i = first_occurrence
+                    ind_imark = 0
             else:
                 return found
         return False
@@ -484,7 +512,7 @@ class Interpreter:
         return stack[-1]
 
     def __flatten(self, possiblyNestedList):
-        # Flatten abritrarily nested list
+        # Flatten arbitrarily nested list
         if not isinstance(possiblyNestedList, list):
             return
         flattened = []

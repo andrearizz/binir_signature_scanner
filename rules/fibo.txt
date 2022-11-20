@@ -1,0 +1,9 @@
+def fibo:
+	matches:
+		$x1 = "ST??(??) = 0x0"
+		$x2 = "ST??(??) = 0x1"
+		$load = "?? = LD??:I??(??)"
+		$add = "?? = Add32(??,??)"
+		$store = "ST??(??) = ??"
+	condition:
+		$x1 and $x2 and {$load 1 $load 1 $add 1 $store 1 $load 1 $store 1 $load 1 $store 2 $load}
