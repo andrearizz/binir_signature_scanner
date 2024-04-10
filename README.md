@@ -1,4 +1,4 @@
-# Progetto tesi
+# BinIR Signature Scanner
 
 Versione più aggiornata del progetto di tesi
 
